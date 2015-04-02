@@ -10,38 +10,49 @@ import x_cache_base
 import x_ccui_notice
 import x_serialize
 #import x_item_client_info
+import x_glb
 import x_common_consts
 import x_ccontrol_items
 import x_text
 import x_item_general_weapon
 import x_weakcall
-import x_chest_Tips_config
+import x_chest_tips_config
 from __builtin__ import str
+import x_item_client_info
 
 class CCUI(x_ccui_base.CCUI):
 	def __init__(self):
 		super(CCUI, self).__init__()
+		self.start_time = 0
 		self.style = x_ccui_consts.CCUI_STYLE_POPUP
 		self.create_ui("chest_homepage.json")
 		self.init_products_info()
-	
+		x_glb.world.per_sec_callout.forever(1, self.on_second)
+		
 	def init_products_info(self):
-		for k, v in enumerate(x_chest_Tips_config.DATA):
+		for k, v in enumerate(x_chest_tips_config.DATA):
 			dic = {}
-			if  x_chest_Tips_config.DATA[v]['''对应宝箱'''] == '钻石':
-				dic['钻石'] = (x_chest_Tips_config.DATA[v]['''格式化描述'''], x_chest_Tips_config.DATA[v]['''图标'''])
+			if  x_chest_tips_config.DATA[v]['''对应宝箱'''] == '钻石':
+				dic['钻石'] = (x_chest_tips_config.DATA[v]['''格式化描述'''], x_chest_tips_config.DATA[v]['''图标'''])
 				self.list_products_diamond.append(dic)
-			elif x_chest_Tips_config.DATA[v]['对应宝箱'] == '青铜':
-				dic['青铜'] = (x_chest_Tips_config.DATA[v]['''格式化描述'''], x_chest_Tips_config.DATA[v]['''图标'''])
+			elif x_chest_tips_config.DATA[v]['对应宝箱'] == '青铜':
+				dic['青铜'] = (x_chest_tips_config.DATA[v]['''格式化描述'''], x_chest_tips_config.DATA[v]['''图标'''])
 				self.list_products_bronze.append(dic)
-			elif x_chest_Tips_config.DATA[v]['对应宝箱'] == '白银':
-				dic['白银'] = (x_chest_Tips_config.DATA[v]['''格式化描述'''], x_chest_Tips_config.DATA[v]['''图标'''])
+			elif x_chest_tips_config.DATA[v]['对应宝箱'] == '白银':
+				dic['白银'] = (x_chest_tips_config.DATA[v]['''格式化描述'''], x_chest_tips_config.DATA[v]['''图标'''])
 				self.list_products_silver.append(dic)
-			elif x_chest_Tips_config.DATA[v]['对应宝箱'] == '黄金':
-				dic['黄金'] = (x_chest_Tips_config.DATA[v]['''格式化描述'''], x_chest_Tips_config.DATA[v]['''图标'''])
+			elif x_chest_tips_config.DATA[v]['对应宝箱'] == '黄金':
+				dic['黄金'] = (x_chest_tips_config.DATA[v]['''格式化描述'''], x_chest_tips_config.DATA[v]['''图标'''])
 				self.list_products_gold.append(dic)
-			
-		#x_chest_Tips_config.DATA[]
+	
+	def on_second(self):
+		dt = int(x_glb.clock() - self.start_time)
+		#remain_time = max(0, x_consts.OBTAIN_BETTER_EQUIP - dt)
+		if self.item_txt_gold and self.item_txt_gold.isVisible():
+			self.item_txt_gold.setString(str(dt))
+		#if remain_time <= 0:
+		#	self.hide()
+					
 	def on_destroy(self):
 		if self.chest_combine_key_page:
 			gui_layer = x_glb.get_cocosui_layer()
@@ -55,7 +66,6 @@ class CCUI(x_ccui_base.CCUI):
 	def on_create(self):
 		self.set_params()
 		self.load_widgets()
-		#self.set_widgets()
 		self.bind_events()
 		#self.reg_actions()
 
@@ -64,6 +74,8 @@ class CCUI(x_ccui_base.CCUI):
 		self.list_products_silver = []
 		self.list_products_gold = []
 		self.list_products_diamond = []
+		self.control_items = x_ccontrol_items.CControl()
+		self.chest_id = 1
 		
 	def load_widgets(self):
 		self.button_close = self.get_child_by_name("button_close")		
@@ -123,6 +135,10 @@ class CCUI(x_ccui_base.CCUI):
 		self.chest_open_result_page = x_ccui_base.load_ui_page(self.root_path + "chest_open_result.json")
 		x_glb.get_cocosui_layer().addChild(self.chest_open_result_page, 0, "chest_open_result.json")
 		self.chest_open_result_page.setVisible(False)
+		self.item_item = x_ccui_util.get_child_by_name(self.chest_open_result_page, "item_item")
+		self.list_result = x_ccui_util.get_child_by_name(self.chest_open_result_page, "list_result")
+		self.result_confirm = x_ccui_util.get_child_by_name(self.chest_open_result_page, "confirm")
+		self.result_reopen10 = x_ccui_util.get_child_by_name(self.chest_open_result_page, "reopen_10")
 		
 		# 单项宝箱item
 		self.chest_item_page = x_ccui_base.load_ui_page(self.root_path + "chest_item.json")
@@ -143,31 +159,16 @@ class CCUI(x_ccui_base.CCUI):
 		self.listlview_products.setTouchEnabled(True)
 		self.listlview_products.setBounceEnabled(True)
 		self.listlview_products.setInertiaScrollEnabled(False)
-		self.item_product = x_ccui_util.get_child_by_name(self.chest_product_list_page, "item_product")
+		self.item_product = x_ccui_util.get_child_by_name(self.chest_product_list_page, "item_product")			
 		self.icon_grid_product = x_ccui_util.get_child_by_name(self.chest_product_list_page, "icon_grid_product")
 		self.txt_product = x_ccui_util.get_child_by_name(self.chest_product_list_page, "txt_product")
 
-		
-	def set_widgets(self):
-		"""
-		# widget settings
-		self.mail_detail_page.setTouchEnabled(True)
-		self.button_write.setVisible(False)
-		self.item_mail.setTouchEnabled(True)
-		self.item_mail.retain()
-		self.item_mail.removeFromParent()
-		self.listview_mails.setTouchEnabled(True)
-		self.listview_mails.setBounceEnabled(True)
-		self.listview_mails.setInertiaScrollEnabled(False)
-		self.mail_detail_page.setVisible(False)
-		self.item_item.retain()
-		self.item_item.removeFromParent()
-		"""
 	
 	def on_hide_homepage(self):
 		#self.listlview_products.setVisible(False)		
 		self.hide()
 		self.chest_product_list_page.setVisible(False)
+		self.chest_open_result_page.setVisible(False)
 		
 	def on_hide_key_combinepage(self):
 		if self.chest_combine_key_page:
@@ -178,6 +179,7 @@ class CCUI(x_ccui_base.CCUI):
 
 	def refresh_product_listview(self, chest_id):
 		self.chest_product_list_page.setVisible(True)
+		self.chest_product_list_page.setLocalZOrder(self.listlview_products.getLocalZOrder() + 1)	
 		self.panel_girl.setVisible(False)		
 		
 		
@@ -202,21 +204,23 @@ class CCUI(x_ccui_base.CCUI):
 			len_products = len(self.list_products_silver)		
 			for i in range(0, len_products):
 				self.txt_product.setString(x_ccui_util.gbk2utf8(self.list_products_silver[i]['白银'][0]))
+				self.icon_grid_product.loadTexture(self.list_products_silver[i]['白银'][1])
 				product_item = self.item_product.clone()
 				self.listlview_products.pushBackCustomItem(product_item)		
 		elif "3" == chest_id:
 			len_products = len(self.list_products_gold)		
 			for i in range(0, len_products):
 				self.txt_product.setString(x_ccui_util.gbk2utf8(self.list_products_gold[i]['黄金'][0]))
+				self.icon_grid_product.loadTexture(self.list_products_gold[i]['黄金'][1])
 				product_item = self.item_product.clone()
 				self.listlview_products.pushBackCustomItem(product_item)
 		elif "4" == chest_id:
 			len_products = len(self.list_products_diamond)		
 			for i in range(0, len_products):
 				self.txt_product.setString(x_ccui_util.gbk2utf8(self.list_products_diamond[i]['钻石'][0]))
+				self.icon_grid_product.loadTexture(self.list_products_diamond[i]['钻石'][1])
 				product_item = self.item_product.clone()
-				self.listlview_products.pushBackCustomItem(product_item)		
-		
+				self.listlview_products.pushBackCustomItem(product_item)				
 				
 		self.item_product.setVisible(False)
 		
@@ -236,14 +240,14 @@ class CCUI(x_ccui_base.CCUI):
 			self.cost_consume_gold.setVisible(True)
 			self.text_consume_gold.setVisible(True)
 			
-			self.item_txt_diamond.setVisible(True)
+			#self.item_txt_diamond.setVisible(True)
 			self.title_diamond.setVisible(True)
 			self.icon_consume_diamond.setVisible(True)
 			self.cost_consume_diamond.setVisible(True)
 			self.text_consume_diamond.setVisible(True)	
 						
 		elif "2" == chestId:
-			self.item_txt_bronze.setVisible(True)
+			#self.item_txt_bronze.setVisible(True)
 			self.title_bronze.setVisible(True)
 			self.icon_consume_bronze.setVisible(True)
 			self.cost_consume_bronze.setVisible(True)
@@ -255,14 +259,14 @@ class CCUI(x_ccui_base.CCUI):
 			self.cost_consume_gold.setVisible(True)
 			self.text_consume_gold.setVisible(True)
 
-			self.item_txt_diamond.setVisible(True)
+			#self.item_txt_diamond.setVisible(True)
 			self.title_diamond.setVisible(True)
 			self.icon_consume_diamond.setVisible(True)
 			self.cost_consume_diamond.setVisible(True)
 			self.text_consume_diamond.setVisible(True)	
 			
 		elif "3" == chestId:
-			self.item_txt_bronze.setVisible(True)
+			#self.item_txt_bronze.setVisible(True)
 			self.title_bronze.setVisible(True)
 			self.icon_consume_bronze.setVisible(True)
 			self.cost_consume_bronze.setVisible(True)
@@ -274,14 +278,14 @@ class CCUI(x_ccui_base.CCUI):
 			self.cost_consume_sliver.setVisible(True)
 			self.text_consume_sliver.setVisible(True)
 
-			self.item_txt_diamond.setVisible(True)
+			#self.item_txt_diamond.setVisible(True)
 			self.title_diamond.setVisible(True)
 			self.icon_consume_diamond.setVisible(True)
 			self.cost_consume_diamond.setVisible(True)
 			self.text_consume_diamond.setVisible(True)
 			
 		elif "4" == chestId:
-			self.item_txt_bronze.setVisible(True)
+			#self.item_txt_bronze.setVisible(True)
 			self.title_bronze.setVisible(True)
 			self.icon_consume_bronze.setVisible(True)
 			self.cost_consume_bronze.setVisible(True)
@@ -334,18 +338,17 @@ class CCUI(x_ccui_base.CCUI):
 			self.cost_consume_diamond.setVisible(False)
 			self.text_consume_diamond.setVisible(False)
 			
-				
+		self.chest_id = int(chestId)
 		self.item_panel.setPosition(0, 0)
 		self.item_panel.setVisible(True)
 		self.show_info_for_item(chestId)		
 		self.refresh_product_listview(chestId)
 							
-	def on_open_chest(self, cnt, chest_id):
-		if "1" == cnt:
-			#x_glb.net.send_and_wait("c_chest_open", chest_id=int(chest_id), buy_type=1, cnt=1)
-			x_glb.net.send_and_wait("c_chest_buy", chest_id=int(chest_id), buy_type=1, cnt=1)
+	def on_open_chest(self, buy_cnt):
+		if "1" == buy_cnt:			
+			x_glb.net.send_and_wait("c_chest_buy", chest_id=self.chest_id, buy_type=1, cnt=1)
 		else:
-			pass
+			x_glb.net.send_and_wait("c_chest_buy", chest_id=self.chest_id, buy_type=1, cnt=10)
 		
 	def bind_events(self):
 		# button event func
@@ -360,37 +363,71 @@ class CCUI(x_ccui_base.CCUI):
 		x_ccui_util.bind_event_func(button=self.panel_gold, func=self.on_show_chest_item, args=("3"))
 		x_ccui_util.bind_event_func(button=self.panel_diamond, func=self.on_show_chest_item, args=("4"))
 		
-		x_ccui_util.bind_event_func(button=self.button_open_1, func=self.on_open_chest, args=("1", 1))
-		x_ccui_util.bind_event_func(button=self.button_open_10, func=self.on_open_chest, args=("10", 1))		
+		x_ccui_util.bind_event_func(button=self.button_open_1, func=self.on_open_chest, args=("1"))
+		x_ccui_util.bind_event_func(button=self.button_open_10, func=self.on_open_chest, args=("9"))
+		
+		x_ccui_util.bind_event_func(button=self.result_confirm, func=self.on_result_confirm)
+		x_ccui_util.bind_event_func(button=self.result_reopen10, func=self.on_result_reopen_10, args=("9",))
+				
 
 	def on_show_combine_key(self):
 		if self.chest_combine_key_page:
-			self.chest_combine_key_page.setVisible(True)		
+			self.chest_combine_key_page.setVisible(True)	
+			self.chest_combine_key_page.setLocalZOrder(self.listlview_products.getLocalZOrder() + 1)	
 			
-	def reg_actions(self):
-		x_glb.data.data_cache.cache_mail.reg_action_receiver(
-			(
-				(x_cache_base.Action.UPDATE, self, self.on_mail_list),
-			))
+	#def reg_actions(self):
+	#	x_glb.data.data_cache.cache_mail.reg_action_receiver(
+	#		(
+	#			(x_cache_base.Action.UPDATE, self, self.on_mail_list),
+	#		))
 	
-	"""
+	
 	def on_destroy(self):
 		super(CCUI, self).on_destroy()
 		if self.item_control:
 			self.item_control.destroy()
 			self.item_control = None
-	"""
+	
+	def on_result_confirm(self):
+		self.chest_open_result_page.setVisible(False)
 
+	def on_result_reopen_10(self, open_cnt):
+		pass
+	
+	def buy_chest_result(self, reward_attrs, reward_items):
+		all_rewards = x_glb.world.unpack_game_rewards(reward_attrs, reward_items) # all_rewards = {'res': {}, 'objects': [(20008, 1)]}
+		
+		self.chest_open_result_page.setVisible(True)
+		widget_list = []
+		self.item_item.setVisible(True)
+		
+		list_objects = all_rewards['objects']
+		len_obj = len(list_objects)
+		for i in range(len_obj):
+			one_item = self.item_item.clone()
+			self.list_result.pushBackCustomItem(one_item)
+			widget_list.append(one_item)
+			
+		self.item_item.setVisible(False)
+		self.chest_product_list_page.setVisible(False)
+		
+		self.control_items.refresh_items(widget_list, list_objects)
+		
+		
 	def on_show(self):
-		super(CCUI, self).on_show()
-		print 'grsn1304:接受到后端协议，准备设置字体'
-		if self.item_txt_bronze:
+		super(CCUI, self).on_show()		
+		self.item_txt_bronze.setVisible(False)
+		self.item_txt_diamond.setVisible(False)
+		
+		if self.item_txt_bronze and self.item_txt_bronze.isVisible():
 			self.item_txt_bronze.setString(x_ccui_util.gbk2utf8("免费"))
-		else:
-			print 'grsn1304:self.item_txt_bronze is none'
+		
 		
 		if self.item_panel.isVisible():
 			self.item_panel.setVisible(False)
 		if not self.panel_girl.isVisible():
 			self.panel_girl.setVisible(True)
 		self.listlview_products.setVisible(False)	
+		
+		self.start_time = x_glb.clock()
+		
